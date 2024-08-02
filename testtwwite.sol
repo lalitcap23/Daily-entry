@@ -1,10 +1,35 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-contract TweetStorage {
-    uint16 public maxTweetLength = 280; // Renamed for clarity
+
+
+
+contract User   {
+    struct Player {
+        address playerAddress;
+        string username;
+        uint256 score;
+    }
+
+    mapping(address => Player) public players;
+
+    function createUser(address userAddress, string memory username) external {
+        require(players[userAddress].playerAddress == address(0), "User already exists with this address");
+
+        Player memory newPlayer = Player({
+            playerAddress: userAddress,
+            username: username,
+            score: 0
+        });
+
+        players[userAddress] = newPlayer;
+    }
+}
+
+
+contract TweetStorage is User {
+    uint16 public maxTweetLength = 280; // Maximum length of a tweet
     address public owner;
-    IUser public userContract; // Interface instance
 
     struct Tweet {
         uint256 id;
@@ -18,14 +43,13 @@ contract TweetStorage {
     event TweetLiked(address liker, address tweetAuthor, uint256 tweetId, uint256 likeCount);
     event TweetUnliked(address unliker, address tweetAuthor, uint256 tweetId, uint256 newLikeCount);
 
+    constructor() {
+        owner = msg.sender;
+    }
+
     modifier onlyOwner() {
         require(msg.sender == owner, "Not the contract owner");
         _;
-    }
-
-    constructor(address _userContractAddress) {
-        owner = msg.sender;
-        userContract = IUser(_userContractAddress);
     }
 
     mapping(address => Tweet[]) public tweets;
@@ -44,9 +68,6 @@ contract TweetStorage {
 
     function makeTweet(string memory _tweet) public {
         require(bytes(_tweet).length <= maxTweetLength, "Tweet exceeds maximum length");
-
-        IUser.Player memory user = userContract.players(msg.sender);
-        require(user.playerAddress != address(0), "User not registered"); // Check if user exists
 
         Tweet memory newTweet = Tweet({
             id: tweets[msg.sender].length,
@@ -82,3 +103,4 @@ contract TweetStorage {
         return tweets[_owner];
     }
 }
+
